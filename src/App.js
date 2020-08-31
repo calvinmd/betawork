@@ -27,11 +27,11 @@ const App = () => {
   const [ loader, setLoader ] = useState(null);
   const [ userObj, setUserObj ] = useState(cloneDeep({}));
   const [ signatures, setSignatures ] = useState(cloneDeep({}));
-  console.log('zzz DEBUG wallet: ', wallet);
-  console.log('zzz DEBUG tweet: ', inputs.tweet);
-  console.log('zzz DEBUG message: ', message);
-  console.log('zzz DEBUG userObj: ', userObj);
-  console.log('zzz DEBUG signatures: ', signatures);
+  // console.log('DEBUG wallet: ', wallet);
+  // console.log('DEBUG tweet: ', inputs.tweet);
+  // console.log('DEBUG message: ', message);
+  // console.log('DEBUG userObj: ', userObj);
+  // console.log('DEBUG signatures: ', signatures);
 
   useEffect(
     () => {
@@ -42,6 +42,7 @@ const App = () => {
           web3.eth.getAccounts()
             .then((accounts) => {
               const account = head(accounts);
+              console.log('wallet found! ', account);
               setWallet(account);
             });
           const user = await fm.user.getUser();
@@ -58,13 +59,14 @@ const App = () => {
     fm.user.login().then(async (accounts) => {
       setWallet(head(accounts));
       const user = await fm.user.getUser();
+      console.log('user logged in! ', user);
       setUserObj(cloneDeep(user));
     });
   };
 
   const handleLogout = () => {
     fm.user.logout().then((result => {
-      console.log('zzz logged out! ', result);
+      console.log('user logged out! ', result);
     }));
     setWallet(null);
     setUserObj(cloneDeep({}));
@@ -114,6 +116,7 @@ const App = () => {
       const signature = get(result, 'result', '');
       const userId = get(userObj, 'userId');
       const updatedSignatures = cloneDeep(signatures);
+      console.log('signature saved! ', signature);
       set(updatedSignatures, userId, signature);
       setSignatures(updatedSignatures);
     });
@@ -132,6 +135,7 @@ const App = () => {
       const signature = get(result, 'result', '');
       const userId = get(userObj, 'userId');
       const isValid = signature === get(signatures, userId);
+      console.log('verification signature: ', signature, ' and is it valid? ', isValid);
       // veryify signature before sending tweet
       let newMessage = "";
       if (isValid) {
@@ -211,7 +215,6 @@ const App = () => {
     const userId = get(userObj, 'userId');
     const signature = get(signatures, userId);
     if (signature) {
-      console.log('zzz SendTweet!!!!!!!!');
       Content = SendTweet;
     } else {
       Content = CreateSignature;
