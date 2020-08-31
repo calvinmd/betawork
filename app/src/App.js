@@ -137,9 +137,9 @@ const App = () => {
       if (isValid) {
         newMessage = (
           <div
-            style={{ margin: "40px", color: "#aaaaaa", fontSize: "18px", cursor: "pointer" }}
+            style={{ marginTop: "40px", padding: "40px", color: "#aaaaaa", fontSize: "18px", cursor: "pointer", border: "solid 1px" }}
           >
-            Verified! Sending tweet...
+            Signature verified! Sending tweet:
             <br />
             <br />
             <b>{inputs.tweet}</b>
@@ -148,7 +148,7 @@ const App = () => {
       } else {
         newMessage = (
           <div
-            style={{ margin: "40px", color: "#aaaaaa", fontSize: "18px", cursor: "pointer" }}
+            style={{ margin: "40px", color: "#aaaaaa", fontSize: "18px", cursor: "pointer", border: "solid 1px" }}
           >
             Signature verification failed!
           </div>
