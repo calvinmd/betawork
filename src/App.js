@@ -42,7 +42,7 @@ const App = () => {
           web3.eth.getAccounts()
             .then((accounts) => {
               const account = head(accounts);
-              console.log('wallet found! ', account);
+              console.log('user already logged in with wallet: ', account);
               setWallet(account);
             });
           const user = await fm.user.getUser();
@@ -57,9 +57,11 @@ const App = () => {
 
   const handleLogin = () => {
     fm.user.login().then(async (accounts) => {
-      setWallet(head(accounts));
+      const account = head(accounts);
+      setWallet(account);
       const user = await fm.user.getUser();
       console.log('user logged in! ', user);
+      console.log('wallet found! ', account);
       setUserObj(cloneDeep(user));
     });
   };
@@ -135,13 +137,14 @@ const App = () => {
       const signature = get(result, 'result', '');
       const userId = get(userObj, 'userId');
       const isValid = signature === get(signatures, userId);
-      console.log('verification signature: ', signature, ' and is it valid? ', isValid);
+      console.log('verification signature: ', signature);
+      console.log('is it valid? ', isValid);
       // veryify signature before sending tweet
       let newMessage = "";
       if (isValid) {
         newMessage = (
           <div
-            style={{ marginTop: "40px", padding: "40px", color: "#aaaaaa", fontSize: "18px", cursor: "pointer", border: "solid 1px" }}
+            style={{ marginTop: "40px", padding: "40px", color: "#aaaaaa", fontSize: "18px", border: "solid 1px" }}
           >
             Signature verified! Sending tweet:
             <br />
@@ -152,7 +155,7 @@ const App = () => {
       } else {
         newMessage = (
           <div
-            style={{ margin: "40px", color: "#aaaaaa", fontSize: "18px", cursor: "pointer", border: "solid 1px" }}
+            style={{ margin: "40px", color: "#aaaaaa", fontSize: "18px", border: "solid 1px" }}
           >
             Signature verification failed!
           </div>
