@@ -70,9 +70,11 @@ const App = () => {
     fm.user.logout().then((result => {
       console.log('user logged out! ', result);
     }));
+    // clean app data
     setWallet(null);
-    setUserObj(cloneDeep({}));
+    setInputs(cloneDeep(initialInputs));
     setMessage('');
+    setUserObj(cloneDeep({}));
   };
 
   const handleInputs = (e) => {
