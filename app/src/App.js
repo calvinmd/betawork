@@ -8,11 +8,14 @@ import logo from './logo.svg';
 import './App.css';
 
 const { REACT_APP_FORTMATIC_KEY } = process.env;
+const RPC_METHOD = 'eth_signTypedData';
 
 // Constructor
 const fm = new Fortmatic(REACT_APP_FORTMATIC_KEY);
 window.web3 = new Web3(fm.getProvider());
 const { web3 } = window;
+
+const AUTH_MESSAGE = 'Please sign this message to create or verify your signature for authentication.';
 
 const App = () => {
   const initialInputs = {
@@ -23,7 +26,7 @@ const App = () => {
   const [ message, setMessage ] = useState('');
   const [ loader, setLoader ] = useState(null);
   const [ userObj, setUserObj ] = useState(cloneDeep({}));
-  const [ signatures, setSignatures ] = useState(cloneDeep([]));
+  const [ signatures, setSignatures ] = useState(cloneDeep({}));
   console.log('zzz DEBUG wallet: ', wallet);
   console.log('zzz DEBUG tweet: ', inputs.tweet);
   console.log('zzz DEBUG message: ', message);
@@ -55,7 +58,6 @@ const App = () => {
     fm.user.login().then(async (accounts) => {
       setWallet(head(accounts));
       const user = await fm.user.getUser();
-      console.log('zzz user: ', user);
       setUserObj(cloneDeep(user));
     });
   };
@@ -79,46 +81,80 @@ const App = () => {
     });
   };
 
+  const TYPE_DATA = [
+    [
+      { "type": "string",
+        "name": "email",
+        "value": get(userObj, 'email')
+      },
+      {
+        "type": "string",
+        "name": "userId",
+        "value": get(userObj, 'userId')
+      },
+      {
+        "type": "string",
+        "name": "authorization message",
+        "value": AUTH_MESSAGE
+      }
+    ],
+    wallet
+  ];
+
   const handleSignTypedData = () => {
-    const from = wallet;
-    const params = [
-      [
-        { "type": "string",
-          "name": "email",
-          "value": get(userObj, 'email')
-        },
-        {
-          "type": "string",
-          "name": "userId",
-          "value": get(userObj, 'userId')
-        },
-        {
-          "type": "string",
-          "name": "tweet",
-          "value": get(inputs, 'tweet')
-        }
-      ],
-      from
-    ];
-    const method = 'eth_signTypedData';
+    const method = RPC_METHOD;
     web3.currentProvider.sendAsync({
       id: 4,
       method,
-      params,
-      from,
+      params: TYPE_DATA,
+      from: wallet,
     }, (err, result) => {
       if (err) return console.error(err);
       if (result.error) return console.error(result.error);
-      console.log('zzz result: ', result);
-      const encryptedMessage = get(result, 'result', '');
-      setMessage(encryptedMessage);
+      const signature = get(result, 'result', '');
+      const userId = get(userObj, 'userId');
       const updatedSignatures = cloneDeep(signatures);
-      updatedSignatures.push(encryptedMessage);
+      set(updatedSignatures, userId, signature);
       setSignatures(updatedSignatures);
-      setInputs({
-        ...inputs,
-        ...{ tweet: "" }
-      });
+    });
+  }
+
+  const veryifyAndSend = () => {
+    const method = RPC_METHOD;
+    web3.currentProvider.sendAsync({
+      id: 4,
+      method,
+      params: TYPE_DATA,
+      from: wallet,
+    }, (err, result) => {
+      if (err) return console.error(err);
+      if (result.error) return console.error(result.error);
+      const signature = get(result, 'result', '');
+      const userId = get(userObj, 'userId');
+      const isValid = signature === get(signatures, userId);
+      // veryify signature before sending tweet
+      let newMessage = "";
+      if (isValid) {
+        newMessage = (
+          <div
+            style={{ margin: "40px", color: "#aaaaaa", fontSize: "18px", cursor: "pointer" }}
+          >
+            Verified! Sending tweet...
+            <br />
+            <br />
+            <b>{inputs.tweet}</b>
+          </div>
+        );
+      } else {
+        newMessage = (
+          <div
+            style={{ margin: "40px", color: "#aaaaaa", fontSize: "18px", cursor: "pointer" }}
+          >
+            Signature verification failed!
+          </div>
+        );
+      }
+      setMessage(newMessage);
     });
   }
 
@@ -131,7 +167,18 @@ const App = () => {
     </Button>
   );
 
-  const SignMessage = (
+  const CreateSignature = (
+    <>
+      <Button
+        onClick={handleSignTypedData}
+        style={{ width: "200px", height: "50px", fontSize: "20px", cursor: "pointer" }}
+      >
+        Verify Signature
+      </Button>
+    </>
+  );
+
+  const SendTweet = (
     <>
       <Form>
         <FormGroup>
@@ -143,39 +190,34 @@ const App = () => {
             maxLength={140}
             value={inputs.tweet}
             placeholder="Maximum 140 characters"
-            size={80}
+            size="80"
             onChange={handleInputs}
             style={{ fontSize: "16px", width: "400px", margin: "50px" }}
           />
         </FormGroup>
         <Button
-          onClick={handleSignTypedData}
+          onClick={veryifyAndSend}
           style={{ width: "200px", height: "50px", fontSize: "20px", cursor: "pointer" }}
         >
-          Sign Data
+          Verify and Send
         </Button>
-        <div
-          style={{ margin: "40px", color: "#aaaaaa", fontSize: "14px", cursor: "pointer" }}
-          onClick={handleLogout}
-        >
-          Logout
-        </div>
-        {
-          message && (
-            <>
-              <hr width="100%" size="1" />
-              <div style={{ fontSize: "16px", marginTop: "40px" }}>Encrypted tweet:</div>
-              <div style={{ fontSize: "12px", marginBottom: "20px", marginTop: "20px" }}>
-                { message }
-              </div>
-            </>
-          )
-        }
+        { message }
       </Form>
     </>
   );
 
-  const Content = wallet ? SignMessage : Login;
+  let Content = Login;
+  if (wallet) {
+    const userId = get(userObj, 'userId');
+    const signature = get(signatures, userId);
+    if (signature) {
+      console.log('zzz SendTweet!!!!!!!!');
+      Content = SendTweet;
+    } else {
+      Content = CreateSignature;
+    }
+  }
+
   const Loader = (
     <div style={{ color: "#aaaaaa", fontSize: "14px" }}>
       { loader }
@@ -187,6 +229,14 @@ const App = () => {
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" width="200px"/>
         { loader ? Loader : Content }
+        { wallet && (
+          <div
+            style={{ margin: "40px", color: "#aaaaaa", fontSize: "14px", cursor: "pointer" }}
+            onClick={handleLogout}
+          >
+            Logout
+          </div>
+        )}
       </header>
     </div>
   );
